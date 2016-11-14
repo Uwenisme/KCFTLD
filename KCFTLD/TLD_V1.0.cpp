@@ -54,7 +54,7 @@ void TLD::init_v(const Mat& FirstFrame_cvM, const Rect& box, const Mat Frame_cvM
 
 	mbuildgrid_v(FirstFrame_cvM, box);//把图片分割为不同尺度的大小网格
 
-    mGetGoodBadbb_v();//据Overlap分为goodbox和badbox
+	mGetGoodBadbb_v();//据Overlap分为goodbox和badbox
 
 	mLastbb = mBestbb;
 
@@ -139,37 +139,37 @@ void TLD::mbuildgrid_v(const Mat& FirstFrame, const Rect& box)
 
 	mGrid_ptr = new BoundingBox[mGridSize_i];
 
-	
-		int GridIdx_i = 0;
-		for (int s = 0; s < 21; s++)
+
+	int GridIdx_i = 0;
+	for (int s = 0; s < 21; s++)
+	{
+		width_i = round((float)box.width*Scales_con_ary_f[s]);
+		height_i = round((float)box.height*Scales_con_ary_f[s]);
+		minBBside_i = min(width_i, height_i);
+
+		//每个grid不能小于15*15
+		if (minBBside_i<mMinGridSize || width_i>FirstFrame.cols || height_i>FirstFrame.rows)
+			continue;
+
+		mScales.push_back(Size(width_i, height_i));
+		int step = round((float)minBBside_i*Shift_con_f);
+
+		for (int y = 1; y < FirstFrame.rows - height_i; y += step)
 		{
-			width_i = round((float)box.width*Scales_con_ary_f[s]);
-			height_i = round((float)box.height*Scales_con_ary_f[s]);
-			minBBside_i = min(width_i, height_i);
-
-			//每个grid不能小于15*15
-			if (minBBside_i<mMinGridSize || width_i>FirstFrame.cols || height_i>FirstFrame.rows)
-				continue;
-
-			mScales.push_back(Size(width_i, height_i));
-			int step = round((float)minBBside_i*Shift_con_f);
-
-			for (int y = 1; y < FirstFrame.rows - height_i; y += step)
+			for (int x = 1; x < FirstFrame.cols - width_i; x += step)
 			{
-				for (int x = 1; x < FirstFrame.cols - width_i; x += step)
-				{
-					mGrid_ptr[GridIdx_i].x = x;
-					mGrid_ptr[GridIdx_i].y = y;
-					mGrid_ptr[GridIdx_i].width = width_i;
-					mGrid_ptr[GridIdx_i].height = height_i;
-					mGrid_ptr[GridIdx_i].sidx = sc;
-					mGrid_ptr[GridIdx_i].overlap = mGetbbOverlap(box, mGrid_ptr[GridIdx_i]);
-					GridIdx_i++;
-				}
+				mGrid_ptr[GridIdx_i].x = x;
+				mGrid_ptr[GridIdx_i].y = y;
+				mGrid_ptr[GridIdx_i].width = width_i;
+				mGrid_ptr[GridIdx_i].height = height_i;
+				mGrid_ptr[GridIdx_i].sidx = sc;
+				mGrid_ptr[GridIdx_i].overlap = mGetbbOverlap(box, mGrid_ptr[GridIdx_i]);
+				GridIdx_i++;
 			}
-			sc++;
-		}//end of for (int s = 0; s < 21; s++)。
-	
+		}
+		sc++;
+	}//end of for (int s = 0; s < 21; s++)。
+
 
 }
 
@@ -483,13 +483,47 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 	{
 		//mtrack_v(CurrFrame_con_cvM, NextFrame_con_cvM);
 		mTrackbb = tracker.update(Frame_con_cvM);
+		imshow("k", Frame_con_cvM(mTrackbb));
+		waitKey(1);
+		Mat nccResult_cvM(1, 1, CV_32F);
+		Mat pattern;
+		float similarity = 0.f;
+		float themax = 0.f;
+		for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
+		{
+			//计算送入图像片与所有p专家最大的相似值
+			mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
+			matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
+			similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
+			if (similarity>themax)
+			{
+				themax = similarity;
 
+			}
+		}
+		if (themax > 0.7)
+		{
+			mIsLastValid_b = true;
+			mIsTracked_b = true;
+		}
+		else
+		{
+			if (themax < 0.6)
+			{
+				mIsTracked_b = false;
+			}
+			else
+			{
+				mIsTracked_b = true;
+			}
+		}
+		
 	}
 	else
 	{
 		mIsTracked_b = false;
 	}
-	
+
 
 	mdetect_v(NextFrame_con_cvM);
 
@@ -528,7 +562,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				printf("Found a better match..reinitializing tracking\n");
 				Nextbb = mClusterbb[ConfDetidx];
 				//lastboxFound = true;
-				mIsLastValid_b = false;
+				//mIsLastValid_b = false;
 			}
 			else
 			{
@@ -549,7 +583,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 				if (closeNum > 0)
 				{
-					mIsLastValid_b = true;
+					
 					//这里的10是用来平衡mTrackbb与detectbb权重，使其基本一致，detectbb一般为10左右
 					Nextbb.x = round((float)(mTrackbb.x * 10 + cx) / (float)(10 + closeNum));
 					Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
@@ -561,36 +595,35 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				else
 				{
 					printf("No close detections were found\n");
-					
+
 				}
 			}//end of else
 
 		}//end of if (mIsDetected_b)
 		else
 		{
-			//printf("detect fail\n");
-			Mat nccResult_cvM(1, 1, CV_32F);
-			Mat pattern;
-			float similarity = 0.f;
-			float themax = 0.f;
-			for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
-			{
-				//计算送入图像片与所有p专家最大的相似值
-				mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
-				matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i],pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
-				similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
-				if (similarity>themax)
-				{
-					themax = similarity;
-					
-				}
-			}
-			if (themax < 0.6)
-			{
-				mIsLastValid_b = false;
-			    lastboxFound = false;
-			}
-			ff << themax << ' ';
+			//Mat nccResult_cvM(1, 1, CV_32F);
+			//Mat pattern;
+			//float similarity = 0.f;
+			//float themax = 0.f;
+			//for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
+			//{
+			//	//计算送入图像片与所有p专家最大的相似值
+			//	mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
+			//	matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
+			//	similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
+			//	if (similarity>themax)
+			//	{
+			//		themax = similarity;
+
+			//	}
+			//}
+			//if (themax < 0.6)
+			//{
+			//	mIsTracked_b = false;
+			//}
+			
+			//ff << themax << ' ';
 			
 		}
 
@@ -600,7 +633,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 	{
 		printf("Not tracking..\n");
 		mIsLastValid_b = false;
-		//lastboxFound = false;
+		lastboxFound = false;
 
 		if (mIsDetected_b)
 		{
@@ -611,10 +644,24 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 			if (mClusterbb.size() == 1)
 			{
-				Nextbb = mClusterbb[0];
-				printf("Confident detection..reinitializing tracker\n");
-				lastboxFound = true;
-				mIsLastValid_b = true;
+				/*mTrackbb = tracker.update(Frame_con_cvM);
+				bool dummy1;
+				bool isSim2NEx_b;
+				float rconf, cconf;
+				Mat pattern;
+				Scalar stdDev;
+				mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, stdDev);
+				mNNModel_cls.GetNNConf(pattern, dummy1, isSim2NEx_b, rconf, cconf);
+				printf("%f %f\n", rconf, cconf);
+				if (cconf > 0.45)
+				{*/
+					Nextbb = mClusterbb[0];
+					printf("Confident detection..reinitializing tracker\n");
+					lastboxFound = true;
+					//mIsLastValid_b = true;
+				//}
+				
+				//mIsLastValid_b = true;
 			}
 		}
 
@@ -624,10 +671,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 	if (mIsLastValid_b)
 	{
-		mlearn_v(NextFrame_con_cvM);
-		//assert(_roi.width >= 0 && _roi.height >= 0);
-		cv::Mat x = tracker.getFeatures(Frame_con_cvM, 0);
-		tracker.train(x, tracker.interp_factor);
+		mlearn_v(NextFrame_con_cvM, Frame_con_cvM,lastboxFound);	
 	}
 
 }
@@ -676,7 +720,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 
 			if (FernPosterior>mFernPosterior_f)//mFernPosterior_f = 6  
 			{
-				mDetectvar_st.bbidx_i_vt.push_back(i);	
+				mDetectvar_st.bbidx_i_vt.push_back(i);
 			}
 
 		}
@@ -685,7 +729,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 			FernPosterior_st.Posterior[i] = 0.0;
 		}
 	}
-	
+
 
 
 	int PassbbSize = mDetectvar_st.bbidx_i_vt.size();
@@ -734,7 +778,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 	}
 }
 
-void TLD::mlearn_v(const Mat& NextFrame_con_cvM)
+void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& lastboxFound)
 {
 	printf("[learn]\n");
 	//保证不会超出图像
@@ -752,6 +796,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM)
 	{
 		printf("Low variance!Not train!\n");
 		mIsLastValid_b = false;
+		lastboxFound = false;
 		return;
 	}
 
@@ -765,6 +810,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM)
 	{
 		printf("Pattern in negative Data, Not train\n");
 		mIsLastValid_b = false;
+		lastboxFound = false;
 		return;
 	}
 
@@ -772,14 +818,15 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM)
 	{
 		printf("Fast change!Not train\n");
 		mIsLastValid_b = false;
+		lastboxFound = false;
 		return;
 	}
 
-		for (int i = 0; i < mGridSize_i; i++)
-		{
-			mGrid_ptr[i].overlap = mGetbbOverlap(Nextbb, mGrid_ptr[i]);//获取新预测到的目标与各box的overlap
-		}
-		mGetGoodBadbb_v();//得到goodbox和badbox
+	for (int i = 0; i < mGridSize_i; i++)
+	{
+		mGrid_ptr[i].overlap = mGetbbOverlap(Nextbb, mGrid_ptr[i]);//获取新预测到的目标与各box的overlap
+	}
+	mGetGoodBadbb_v();//得到goodbox和badbox
 
 
 
@@ -820,6 +867,10 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM)
 
 	mFernModel_cls.UpdateFernModel(mCurrFern_vt);
 	mNNModel_cls.UpdateNNmodel(mPExpert_cvM, mNExpert_vt_cvM);
+
+	//assert(_roi.width >= 0 && _roi.height >= 0);
+	cv::Mat x = tracker.getFeatures(Frame_con_cvM, 0);
+	tracker.train(x, tracker.interp_factor);
 
 	printf("%d current fern model to train\n", mCurrFern_vt.size());
 	printf("%d current NExpert model to train\n", mNExpert_vt_cvM.size());
@@ -871,7 +922,7 @@ void TLD::mCluster(const vector<BoundingBox>& Detectbb, const vector<float>& Det
 
 	for (int i = 0; i < categoryNum_i; i++)
 	{
-		N = 0; int x=0, y=0, w=0, h=0; float cnf = 0.f;
+		N = 0; int x = 0, y = 0, w = 0, h = 0; float cnf = 0.f;
 		for (int j = 0; j < categoryIdx_i_vt.size(); j++)
 		{
 			if (i == categoryIdx_i_vt[j])
@@ -890,7 +941,7 @@ void TLD::mCluster(const vector<BoundingBox>& Detectbb, const vector<float>& Det
 			Clusterbb[i].y = round(y / N);
 			Clusterbb[i].width = round(w / N);
 			Clusterbb[i].height = round(h / N);
-			ClusterbbCconf[i] = cnf/N;
+			ClusterbbCconf[i] = cnf / N;
 		}
 	}
 

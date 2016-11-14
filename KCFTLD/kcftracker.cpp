@@ -222,8 +222,10 @@ cv::Rect KCFTracker::update(cv::Mat image)
     //if (_roi.x + _roi.width <= 0) _roi.x = -_roi.width + 2;
     //if (_roi.y + _roi.height <= 0) _roi.y = -_roi.height + 2;
 
-	_roi.x = max(_roi.x, 0.f);
-	_roi.y = max(_roi.y, 0.f);
+	_roi.x = max(_roi.x, 1.f);
+	_roi.x = min(_roi.x, static_cast<float>(image.cols)-1);
+	_roi.y = max(_roi.y, 1.f);
+	_roi.y = min(_roi.y, static_cast<float>(image.rows)-1);
 	_roi.width = min(_roi.x + _roi.width, static_cast<float>(image.cols)) - _roi.x;
 	_roi.height = min(_roi.y + _roi.height, static_cast<float>(image.rows)) - _roi.y;
 

@@ -95,7 +95,7 @@ public:
 
 	void mdetect_v(const Mat& NextFrame_con_cvM);
 
-	void mlearn_v(const Mat& NextFrame_con_cvM);
+	void mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool& lastboxFound);
 
 	void processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM, BoundingBox& Nextbb, bool& lastboxFound, const Mat Frame_con_cvM);
 
