@@ -31,7 +31,7 @@ public:
     virtual cv::Rect  update( cv::Mat image)=0;
 
 
-protected:
+//protected:
     cv::Rect_<float> _roi;
 };
 

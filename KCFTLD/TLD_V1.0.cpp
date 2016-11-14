@@ -561,6 +561,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			{
 				printf("Found a better match..reinitializing tracking\n");
 				Nextbb = mClusterbb[ConfDetidx];
+				tracker._roi = Nextbb;
 				//lastboxFound = true;
 				//mIsLastValid_b = false;
 			}
