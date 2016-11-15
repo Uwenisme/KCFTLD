@@ -489,26 +489,29 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		Mat pattern;
 		float similarity = 0.f;
 		float themax = 0.f;
-		for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
+		float average = 0.f;
+		int count = 0;
+		for (; count < mNNModel_cls.mPExpert_vt_cvM.size(); count++)
 		{
 			//计算送入图像片与所有p专家最大的相似值
 			mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
-			matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
+			matchTemplate(mNNModel_cls.mPExpert_vt_cvM[count], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
 			similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
+			average += similarity;
 			if (similarity>themax)
 			{
 				themax = similarity;
-
 			}
 		}
-		if (themax > 0.7)
+		ff << average/count << ' ';
+		if (themax > 0.80)
 		{
 			mIsLastValid_b = true;
 			mIsTracked_b = true;
 		}
 		else
 		{
-			if (themax < 0.6)
+			if (themax < 0.7)
 			{
 				mIsTracked_b = false;
 			}
@@ -584,7 +587,6 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 				if (closeNum > 0)
 				{
-					
 					//这里的10是用来平衡mTrackbb与detectbb权重，使其基本一致，detectbb一般为10左右
 					Nextbb.x = round((float)(mTrackbb.x * 10 + cx) / (float)(10 + closeNum));
 					Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
@@ -795,7 +797,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& 
 
 	if (pow(stdDev.val[0], 2) < mBestbbVariance_d)//方差太小，不训练
 	{
-		printf("Low variance!Not train!\n");
+		printf("Low variance!Not train!%lf\n", mBestbbVariance_d);
 		mIsLastValid_b = false;
 		lastboxFound = false;
 		return;
