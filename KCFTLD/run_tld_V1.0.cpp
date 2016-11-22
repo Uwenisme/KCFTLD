@@ -95,7 +95,7 @@ int main()
 			<< "9--panda" << endl;
 		cin >> videoIndex_i;
 
-		char *name[10] = { "./datasets/01_david/david.mpg", "./datasets/02_jumping/jumping.mpg",
+		char *name[10] = { "./datasets/01_david/david.avi", "./datasets/02_jumping/jumping.mpg",
 			"./datasets/03_pedestrian1/pedestrian1.mpg", "./datasets/04_pedestrian2/pedestrian2.mpg",
 			"./datasets/05_pedestrian3/pedestrian3.mpg", "./datasets/06_car/car.mpg",
 			"./datasets/07_motocross/motocross.mpg", "./datasets/08_volkswagen/volkswagen.mpg",
@@ -205,6 +205,7 @@ int main()
 		{
 		    rectangle(NextImg_cvM, Rect(Nextbox.x, Nextbox.y, Nextbox.width, Nextbox.height), Scalar(255, 255, 255),2);
 			SumFound_i++;
+			ff << Nextbox.x <<' '<< Nextbox.y <<' '<< Nextbox.width <<' '<< Nextbox.height << endl;
 		}
 		
 		SumFrame_i++;
