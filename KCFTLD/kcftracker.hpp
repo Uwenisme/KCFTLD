@@ -87,22 +87,21 @@ the use of this software, even if advised of the possibility of such damage.
 #ifndef _OPENCV_KCFTRACKER_HPP_
 #define _OPENCV_KCFTRACKER_HPP_
 #endif
+
 class KCFTracker : public Tracker
 {
 public:
     // Constructor
-    //KCFTracker(bool hog = true, bool fixed_window = true, bool multiscale = true, bool lab = true);
-	KCFTracker(bool hog = true, bool fixed_window = false, bool multiscale = true, bool lab = false);
+    KCFTracker(bool hog = true, bool fixed_window = true, bool multiscale = true, bool lab = true);
+
     // Initialize tracker 
     virtual void init(const cv::Rect &roi, cv::Mat image);
     
     // Update position based on the new frame
     virtual cv::Rect update(cv::Mat image);
-
-	// Obtain sub-window from image, with replication-padding and extract features
+	
 	cv::Mat getFeatures(const cv::Mat & image, bool inithann, float scale_adjust = 1.0f);
 
-	// train tracker with a single image
 	void train(cv::Mat x, float train_interp_factor);
 
     float interp_factor; // linear interpolation factor for adaptation
@@ -120,7 +119,8 @@ protected:
     // Detect object in the current frame.
     cv::Point2f detect(cv::Mat z, cv::Mat x, float &peak_value);
 
-  
+    // train tracker with a single image
+    
 
     // Evaluates a Gaussian kernel with bandwidth SIGMA for all relative shifts between input images X and Y, which must both be MxN. They must    also be periodic (ie., pre-processed with a cosine window).
     cv::Mat gaussianCorrelation(cv::Mat x1, cv::Mat x2);
@@ -128,7 +128,8 @@ protected:
     // Create Gaussian Peak. Function called only in the first frame.
     cv::Mat createGaussianPeak(int sizey, int sizex);
 
-
+    // Obtain sub-window from image, with replication-padding and extract features
+   
 
     // Initialize Hanning window. Function called only in the first frame.
     bool createHanningMats();

@@ -80,15 +80,15 @@ or tort (including negligence or otherwise) arising in any way out of
 the use of this software, even if advised of the possibility of such damage.
  */
 
+//#include "stdafx.h"
+
 #ifndef _KCFTRACKER_HEADERS
 #include "kcftracker.hpp"
 #include "ffttools.hpp"
 #include "recttools.hpp"
 #include "fhog.hpp"
 #include "labdata.hpp"
-#include <iostream>
 #endif
-
 
 // Constructor
 KCFTracker::KCFTracker(bool hog, bool fixed_window, bool multiscale, bool lab)
@@ -174,8 +174,6 @@ void KCFTracker::init(const cv::Rect &roi, cv::Mat image)
 // Update position based on the new frame
 cv::Rect KCFTracker::update(cv::Mat image)
 {
-	using namespace std;
-
     if (_roi.x + _roi.width <= 0) _roi.x = -_roi.width + 1;
     if (_roi.y + _roi.height <= 0) _roi.y = -_roi.height + 1;
     if (_roi.x >= image.cols - 1) _roi.x = image.cols - 2;
@@ -187,6 +185,7 @@ cv::Rect KCFTracker::update(cv::Mat image)
 
     float peak_value;
     cv::Point2f res = detect(_tmpl, getFeatures(image, 0, 1.0f), peak_value);
+
     if (scale_step != 1) {
         // Test at a smaller _scale
         float new_peak_value;
@@ -199,16 +198,6 @@ cv::Rect KCFTracker::update(cv::Mat image)
             _roi.width /= scale_step;
             _roi.height /= scale_step;
         }
-		// Test at a smallest _scale
-		/*new_res = detect(_tmpl, getFeatures(image, 0, 1.0f / (scale_step*scale_step)), new_peak_value);
-
-		if (scale_weight * new_peak_value > peak_value) {
-			res = new_res;
-			peak_value = new_peak_value;
-			_scale /= scale_step;
-			_roi.width /= scale_step;
-			_roi.height /= scale_step;
-		}*/
 
         // Test at a bigger _scale
         new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
@@ -220,38 +209,25 @@ cv::Rect KCFTracker::update(cv::Mat image)
             _roi.width *= scale_step;
             _roi.height *= scale_step;
         }
-
-		// Test at a biggest _scale
-		/*new_res = detect(_tmpl, getFeatures(image, 0, scale_step*scale_step), new_peak_value);
-
-		if (scale_weight * new_peak_value > peak_value) {
-			res = new_res;
-			peak_value = new_peak_value;
-			_scale *= scale_step;
-			_roi.width *= scale_step;
-			_roi.height *= scale_step;
-		}*/
     }
-	//ff<<peak_value<<' ';
+
     // Adjust by cell size and _scale
     _roi.x = cx - _roi.width / 2.0f + ((float) res.x * cell_size * _scale);
     _roi.y = cy - _roi.height / 2.0f + ((float) res.y * cell_size * _scale);
 
-    //if (_roi.x >= image.cols - 1) _roi.x = image.cols - 1;
-    //if (_roi.y >= image.rows - 1) _roi.y = image.rows - 1;
-    //if (_roi.x + _roi.width <= 0) _roi.x = -_roi.width + 2;
-    //if (_roi.y + _roi.height <= 0) _roi.y = -_roi.height + 2;
-
-	_roi.x = max(_roi.x, 1.f);
-	_roi.x = min(_roi.x, static_cast<float>(image.cols)-1);
-	_roi.y = max(_roi.y, 1.f);
-	_roi.y = min(_roi.y, static_cast<float>(image.rows)-1);
-	_roi.width = min(_roi.x + _roi.width, static_cast<float>(image.cols)) - _roi.x;
-	_roi.height = min(_roi.y + _roi.height, static_cast<float>(image.rows)) - _roi.y;
-
-    //assert(_roi.width >= 0 && _roi.height >= 0);
-   // cv::Mat x = getFeatures(image, 0);
-    //train(x, interp_factor);
+	if ( _roi.x<0 ) _roi.x = 0;
+	if ( _roi.y<0 ) _roi.y = 0;
+    if (_roi.x >= image.cols - 1) _roi.x = image.cols - 1;
+    if (_roi.y >= image.rows - 1) _roi.y = image.rows - 1;
+    if (_roi.x + _roi.width <= 0) _roi.x = -_roi.width + 2;
+    if (_roi.y + _roi.height <= 0) _roi.y = -_roi.height + 2;	
+	if (_roi.x + _roi.width>=image.cols ) _roi.width=image.cols-_roi.x;
+	if ( _roi.y + _roi.height>=image.rows ) _roi.height=image.rows - _roi.y;
+	
+	
+    assert(_roi.width >= 0 && _roi.height >= 0);
+    cv::Mat x = getFeatures(image, 0);
+    train(x, interp_factor);
 
     return _roi;
 }
@@ -417,7 +393,7 @@ cv::Mat KCFTracker::getFeatures(const cv::Mat & image, bool inithann, float scal
             _tmpl_sz.height = (_tmpl_sz.height / 2) * 2;
         }
     }
-	
+
     extracted_roi.width = scale_adjust * _scale * _tmpl_sz.width;
     extracted_roi.height = scale_adjust * _scale * _tmpl_sz.height;
 

@@ -479,8 +479,8 @@ void TLD::mEvaluate()
 
 void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM, BoundingBox& Nextbb, bool& lastboxFound, const Mat Frame_con_cvM)
 {
-	//if (lastboxFound)
-	//{
+	if (lastboxFound)
+	{
 		//mtrack_v(CurrFrame_con_cvM, NextFrame_con_cvM);
 		mTrackbb = tracker.update(Frame_con_cvM);
 		imshow("k", Frame_con_cvM(mTrackbb));
@@ -525,14 +525,15 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			else
 			{
 				mIsTracked_b = true;
+				
 			}
 		}
 		
-	//}
-	//else
-	//{
-	//	mIsTracked_b = false;
-	//}
+	}
+	else
+	{
+		mIsTracked_b = false;
+	}
 
 
 	mdetect_v(NextFrame_con_cvM);

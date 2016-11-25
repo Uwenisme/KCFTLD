@@ -46,6 +46,7 @@
 //#include "_lsvmc_latentsvm.h"
 //#include "_lsvmc_resizeimg.h"
 
+//#include "stdafx.h"
 #include "fhog.hpp"
 
 
