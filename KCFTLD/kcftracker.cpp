@@ -88,8 +88,9 @@ the use of this software, even if advised of the possibility of such damage.
 #include "recttools.hpp"
 #include "fhog.hpp"
 #include "labdata.hpp"
+#include <fstream>
 #endif
-
+extern std::ofstream ff;
 // Constructor
 KCFTracker::KCFTracker(bool hog, bool fixed_window, bool multiscale, bool lab)
 {
@@ -170,10 +171,21 @@ void KCFTracker::init(const cv::Rect &roi, cv::Mat image)
     //_num = cv::Mat(size_patch[0], size_patch[1], CV_32FC2, float(0));
     //_den = cv::Mat(size_patch[0], size_patch[1], CV_32FC2, float(0));
     train(_tmpl, 1.0); // train with initial frame
+
+	kf.init(2, 1);
+	kf.transitionMatrix = *(cv::Mat_<float>(2, 2) << 1, 0, 0, 1);
+	
+    cv::setIdentity(kf.measurementMatrix);
+	cv::setIdentity(kf.processNoiseCov, cv::Scalar::all(1e-3));
+	cv::setIdentity(kf.measurementNoiseCov, cv::Scalar::all(1e-1));
+	cv::setIdentity(kf.errorCovPost, cv::Scalar::all(1.0));
+	kf.statePost = *(cv::Mat_<float>(2, 1) << 1.05,0.f);
  }
 // Update position based on the new frame
 cv::Rect KCFTracker::update(cv::Mat image)
 {
+	
+
     if (_roi.x + _roi.width <= 0) _roi.x = -_roi.width + 1;
     if (_roi.y + _roi.height <= 0) _roi.y = -_roi.height + 1;
     if (_roi.x >= image.cols - 1) _roi.x = image.cols - 2;
@@ -182,34 +194,56 @@ cv::Rect KCFTracker::update(cv::Mat image)
     float cx = _roi.x + _roi.width / 2.0f;
     float cy = _roi.y + _roi.height / 2.0f;
 
-
     float peak_value;
+
     cv::Point2f res = detect(_tmpl, getFeatures(image, 0, 1.0f), peak_value);
+	cv::Mat pre = kf.predict();
+	scale_step = pre.at<float>(0);
+	ff << scale_step<<' ';
 
     if (scale_step != 1) {
         // Test at a smaller _scale
-        float new_peak_value;
-        cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, 1.0f / scale_step), new_peak_value);
+        //float new_peak_value;
+        //cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, 1.0f / scale_step), new_peak_value);
 
-        if (scale_weight * new_peak_value > peak_value) {
-            res = new_res;
-            peak_value = new_peak_value;
-            _scale /= scale_step;
-            _roi.width /= scale_step;
-            _roi.height /= scale_step;
-        }
+        //if (scale_weight * new_peak_value > peak_value) {
+        //    res = new_res;
+        //    peak_value = new_peak_value;
+        //    _scale /= scale_step;
+        //    _roi.width /= scale_step;
+        //    _roi.height /= scale_step;
+        //}
 
-        // Test at a bigger _scale
-        new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
+        //// Test at a bigger _scale
+        //new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
 
-        if (scale_weight * new_peak_value > peak_value) {
-            res = new_res;
-            peak_value = new_peak_value;
-            _scale *= scale_step;
-            _roi.width *= scale_step;
-            _roi.height *= scale_step;
-        }
+        //if (scale_weight * new_peak_value > peak_value) {
+        //    res = new_res;
+        //    peak_value = new_peak_value;
+        //    _scale *= scale_step;
+        //    _roi.width *= scale_step;
+        //    _roi.height *= scale_step;
+        //}
+		float new_peak_value;
+		cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
+
+		if (scale_weight * new_peak_value > peak_value) {
+		    res = new_res;
+		    peak_value = new_peak_value;
+		    _scale *= scale_step;
+		    _roi.width *= scale_step;
+		    _roi.height *= scale_step;
+			scale_step = (1 + scale_step) / 2.0;
+		}
+		else
+		{
+			scale_step = 2.0 / (1 + scale_step);
+		}
     }
+
+	cv::Mat measure(1, 1, CV_32F);
+	measure.at<float>(0) = scale_step;
+	kf.correct(measure);
 
     // Adjust by cell size and _scale
     _roi.x = cx - _roi.width / 2.0f + ((float) res.x * cell_size * _scale);

@@ -205,7 +205,7 @@ int main()
 		{
 		    rectangle(NextImg_cvM, Rect(Nextbox.x, Nextbox.y, Nextbox.width, Nextbox.height), Scalar(255, 255, 255),2);
 			SumFound_i++;
-			ff << Nextbox.x <<' '<< Nextbox.y <<' '<< Nextbox.width <<' '<< Nextbox.height << endl;
+			//ff << Nextbox.x <<' '<< Nextbox.y <<' '<< Nextbox.width <<' '<< Nextbox.height << endl;
 		}
 		
 		SumFrame_i++;

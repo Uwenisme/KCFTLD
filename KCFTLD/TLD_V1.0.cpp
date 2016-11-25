@@ -511,7 +511,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		//}
 		////ff << average/count << ' ';
 		//average /= count;
-		if (mTrackedCconf > 0.60)
+		if (mTrackedCconf > 0.40)
 		{
 			mIsLastValid_b = true;
 			mIsTracked_b = true;
@@ -600,6 +600,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 					Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
 					Nextbb.width = round((float)(mTrackbb.width * 10 + cw) / (float)(10 + closeNum));
 					Nextbb.height = round((float)(mTrackbb.height * 10 + ch) / (float)(10 + closeNum));
+			
 					printf("Track BB:x%d y%d w%d h%d\n", mTrackbb.x, mTrackbb.y, mTrackbb.width, mTrackbb.height);
 					printf("Average BB:x%d y%d w%d h%d\n", Nextbb.x, Nextbb.y, Nextbb.width, Nextbb.height);
 				}
@@ -611,8 +612,8 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			}//end of else
 
 		}//end of if (mIsDetected_b)
-		else
-		{
+		//else
+		//{
 			//Mat nccResult_cvM(1, 1, CV_32F);
 			//Mat pattern;
 			//float similarity = 0.f;
@@ -636,7 +637,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			
 			//ff << themax << ' ';
 			
-		}
+	//	}
 
 	}//end of if (mIsTracked_b)
 
@@ -677,14 +678,24 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		}
 
 	}
-
+	
+	
 	mLastbb = Nextbb;
+	
+	/*Mat pre = kf.predict();
+	tracker._roi = Rect(pre.at<float>(0), pre.at<float>(1), pre.at<float>(2), pre.at<float>(3));
+	Mat measure(4, 1, CV_32F);
+	measure.at<float>(0) = Nextbb.x;
+	measure.at<float>(1) = Nextbb.y;
+	measure.at<float>(2) = Nextbb.width;
+	measure.at<float>(3) = Nextbb.height;
+	kf.correct(measure);*/
 
 	if (mIsLastValid_b)
 	{
 		mlearn_v(NextFrame_con_cvM, Frame_con_cvM,lastboxFound);	
 	}
-
+    
 }
 
 
@@ -729,7 +740,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 			FernPosterior_st.Posterior[i] = FernPosterior;
 			FernPosterior_st.Fern[i] = fern_vt;
 
-			if (FernPosterior>mFernPosterior_f)//mFernPosterior_f = 6  
+			if (FernPosterior>mFernPosterior_f-0.5)//mFernPosterior_f = 6
 			{
 				mDetectvar_st.bbidx_i_vt.push_back(i);
 			}
@@ -770,7 +781,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 		mNNModel_cls.GetNNConf(mDetectvar_st.pattern_vt_cvM[i], dummy, dummy1, rconf_f_vt[i], cconf_f_vt[i]);
 
 		//if (mDetectvar_st.rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx)//0.65
-		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx)
+		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx-0.05)
 		{
 			mDetectedbb.push_back(mGrid_ptr[idx]);//最终通过的box
 			mDetectCconf.push_back(cconf_f_vt[i]);//通过box的保守相似度

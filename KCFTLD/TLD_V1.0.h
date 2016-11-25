@@ -188,6 +188,8 @@ private:
 	//用于后面学习时选取训练样本，避免重复工作
 
 	KCFTracker tracker;
+	
+
 };
 
 

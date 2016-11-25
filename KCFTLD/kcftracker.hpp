@@ -144,6 +144,8 @@ protected:
     cv::Mat _den;
     cv::Mat _labCentroids;
 
+	cv::KalmanFilter kf;
+
 private:
     int size_patch[3];
     cv::Mat hann;
