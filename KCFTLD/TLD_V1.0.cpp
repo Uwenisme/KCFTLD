@@ -670,6 +670,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 					Nextbb = mClusterbb[0];
 					printf("Confident detection..reinitializing tracker\n");
 					lastboxFound = true;
+					//tracker._roi = Nextbb;
 					//mIsLastValid_b = true;
 				//}
 				
@@ -681,6 +682,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 	
 	
 	mLastbb = Nextbb;
+	
 	
 	/*Mat pre = kf.predict();
 	tracker._roi = Rect(pre.at<float>(0), pre.at<float>(1), pre.at<float>(2), pre.at<float>(3));
@@ -740,7 +742,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 			FernPosterior_st.Posterior[i] = FernPosterior;
 			FernPosterior_st.Fern[i] = fern_vt;
 
-			if (FernPosterior>mFernPosterior_f-0.5)//mFernPosterior_f = 6
+			if (FernPosterior>mFernPosterior_f-0.18)//mFernPosterior_f = 6
 			{
 				mDetectvar_st.bbidx_i_vt.push_back(i);
 			}
@@ -781,7 +783,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 		mNNModel_cls.GetNNConf(mDetectvar_st.pattern_vt_cvM[i], dummy, dummy1, rconf_f_vt[i], cconf_f_vt[i]);
 
 		//if (mDetectvar_st.rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx)//0.65
-		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx-0.05)
+		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx-0.02)
 		{
 			mDetectedbb.push_back(mGrid_ptr[idx]);//最终通过的box
 			mDetectCconf.push_back(cconf_f_vt[i]);//通过box的保守相似度

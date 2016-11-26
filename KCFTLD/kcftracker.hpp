@@ -145,6 +145,8 @@ protected:
     cv::Mat _labCentroids;
 
 	cv::KalmanFilter kf;
+	int scale_shift_count;
+	bool scale_change;
 
 private:
     int size_patch[3];

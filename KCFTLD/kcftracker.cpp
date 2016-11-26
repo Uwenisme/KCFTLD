@@ -89,6 +89,7 @@ the use of this software, even if advised of the possibility of such damage.
 #include "fhog.hpp"
 #include "labdata.hpp"
 #include <fstream>
+#include <ctime>
 #endif
 extern std::ofstream ff;
 // Constructor
@@ -100,7 +101,7 @@ KCFTracker::KCFTracker(bool hog, bool fixed_window, bool multiscale, bool lab)
     padding = 2.5;
     //output_sigma_factor = 0.1;
     output_sigma_factor = 0.125;
-
+	scale_shift_count = 0;
 
     if (hog) {    // HOG
         // VOT
@@ -172,14 +173,14 @@ void KCFTracker::init(const cv::Rect &roi, cv::Mat image)
     //_den = cv::Mat(size_patch[0], size_patch[1], CV_32FC2, float(0));
     train(_tmpl, 1.0); // train with initial frame
 
-	kf.init(2, 1);
+	/*kf.init(2, 1);
 	kf.transitionMatrix = *(cv::Mat_<float>(2, 2) << 1, 0, 0, 1);
 	
     cv::setIdentity(kf.measurementMatrix);
 	cv::setIdentity(kf.processNoiseCov, cv::Scalar::all(1e-3));
 	cv::setIdentity(kf.measurementNoiseCov, cv::Scalar::all(1e-1));
 	cv::setIdentity(kf.errorCovPost, cv::Scalar::all(1.0));
-	kf.statePost = *(cv::Mat_<float>(2, 1) << 1.05,0.f);
+	kf.statePost = *(cv::Mat_<float>(2, 1) << 1.05,0.f);*/
  }
 // Update position based on the new frame
 cv::Rect KCFTracker::update(cv::Mat image)
@@ -197,34 +198,50 @@ cv::Rect KCFTracker::update(cv::Mat image)
     float peak_value;
 
     cv::Point2f res = detect(_tmpl, getFeatures(image, 0, 1.0f), peak_value);
-	cv::Mat pre = kf.predict();
-	scale_step = pre.at<float>(0);
-	ff << scale_step<<' ';
+	//cv::Mat pre = kf.predict();
+	//scale_step = pre.at<float>(0);
+	//cv::RNG rng((unsigned)time(NULL));
+    
+	scale_step = pow(2, scale_shift_count)*0.02+1;
+	ff << scale_step << ' ';
 
     if (scale_step != 1) {
-        // Test at a smaller _scale
-        //float new_peak_value;
-        //cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, 1.0f / scale_step), new_peak_value);
+         //Test at a smaller _scale
+        float new_peak_value;
+        cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, 1.0f / scale_step), new_peak_value);
 
-        //if (scale_weight * new_peak_value > peak_value) {
-        //    res = new_res;
-        //    peak_value = new_peak_value;
-        //    _scale /= scale_step;
-        //    _roi.width /= scale_step;
-        //    _roi.height /= scale_step;
-        //}
+        if (scale_weight * new_peak_value > peak_value) {
+            res = new_res;
+            peak_value = new_peak_value;
+            _scale /= scale_step;
+            _roi.width /= scale_step;
+            _roi.height /= scale_step;
+			scale_change = true;
+        }
 
-        //// Test at a bigger _scale
-        //new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
+        // Test at a bigger _scale
+        new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
 
-        //if (scale_weight * new_peak_value > peak_value) {
-        //    res = new_res;
-        //    peak_value = new_peak_value;
-        //    _scale *= scale_step;
-        //    _roi.width *= scale_step;
-        //    _roi.height *= scale_step;
-        //}
-		float new_peak_value;
+        if (scale_weight * new_peak_value > peak_value) {
+            res = new_res;
+            peak_value = new_peak_value;
+            _scale *= scale_step;
+            _roi.width *= scale_step;
+            _roi.height *= scale_step;
+			scale_change = true;
+        }
+		if (scale_change)
+		{
+			if (scale_shift_count<2)
+			   scale_shift_count += 1;
+		}
+		else
+		{
+			if (scale_shift_count>0)
+			   scale_shift_count -= 1;
+		}
+		scale_change = false;
+		/*float new_peak_value;
 		cv::Point2f new_res = detect(_tmpl, getFeatures(image, 0, scale_step), new_peak_value);
 
 		if (scale_weight * new_peak_value > peak_value) {
@@ -238,12 +255,12 @@ cv::Rect KCFTracker::update(cv::Mat image)
 		else
 		{
 			scale_step = 2.0 / (1 + scale_step);
-		}
+		}*/
     }
 
-	cv::Mat measure(1, 1, CV_32F);
+	/*cv::Mat measure(1, 1, CV_32F);
 	measure.at<float>(0) = scale_step;
-	kf.correct(measure);
+	kf.correct(measure);*/
 
     // Adjust by cell size and _scale
     _roi.x = cx - _roi.width / 2.0f + ((float) res.x * cell_size * _scale);
