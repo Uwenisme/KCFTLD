@@ -742,7 +742,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 			FernPosterior_st.Posterior[i] = FernPosterior;
 			FernPosterior_st.Fern[i] = fern_vt;
 
-			if (FernPosterior>mFernPosterior_f-0.18)//mFernPosterior_f = 6
+			if (FernPosterior>mFernPosterior_f-0.18)//mFernPosterior_f = 6.
 			{
 				mDetectvar_st.bbidx_i_vt.push_back(i);
 			}
