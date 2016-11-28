@@ -91,7 +91,7 @@ the use of this software, even if advised of the possibility of such damage.
 #include <fstream>
 #include <ctime>
 #endif
-extern std::ofstream ff;
+//extern std::ofstream ff;
 // Constructor
 KCFTracker::KCFTracker(bool hog, bool fixed_window, bool multiscale, bool lab)
 {
@@ -203,7 +203,7 @@ cv::Rect KCFTracker::update(cv::Mat image)
 	//cv::RNG rng((unsigned)time(NULL));
     
 	scale_step = pow(2, scale_shift_count)*0.02+1;
-	ff << scale_step << ' ';
+	//ff << scale_step << ' ';
 
     if (scale_step != 1) {
          //Test at a smaller _scale
