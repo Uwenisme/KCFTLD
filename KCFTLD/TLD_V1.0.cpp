@@ -1,6 +1,6 @@
 #include "TLD_V1.0.h"
 #include <fstream>
-//extern std::ofstream ff;
+extern std::ofstream ff;
 TLD::TLD(const FileNode& file)
 {
 	mMinGridSize = (int)file["min_win"];
@@ -81,6 +81,8 @@ void TLD::init_v(const Mat& FirstFrame_cvM, const Rect& box, const Mat Frame_cvM
 	FernPosterior_st.Fern = vector<vector<int> >(mGridSize_i, vector<int>(10, 0));
 
 	tracker.init(box, Frame_cvM);
+
+	mMeanSimilar2kcf = 0.5;
 }
 
 void TLD::mCalIntegralImgVariance_v(const Mat& FirstFrame_cvM)
@@ -511,16 +513,21 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		//}
 		////ff << average/count << ' ';
 		//average /= count;
-		if (mTrackedCconf > 0.40)
+		ff << mTrackedCconf << ' ';
+		
+		if (mTrackedCconf > 0.35)
 		{
 			mIsLastValid_b = true;
 			mIsTracked_b = true;
+			printf("!!!!!!!!!is%f\n", mTrackedCconf);
 		}
 		else
 		{
-			if (mTrackedCconf < 0.3)
+			if (mTrackedCconf < mMeanSimilar2kcf*0.65&&mTrackedCconf <0.3)
 			{
 				mIsTracked_b = false;
+				printf("the mTrackedCconf is%f\n", mTrackedCconf);
+				//system("pause");
 			}
 			else
 			{
@@ -528,10 +535,11 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				
 			}
 		}
-		
+		mMeanSimilar2kcf = mMeanSimilar2kcf*0.8 + mTrackedCconf*0.2;
 	}
 	else
 	{
+		ff << mTrackedCconf << ' ';
 		mIsTracked_b = false;
 	}
 
@@ -696,6 +704,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 	if (mIsLastValid_b)
 	{
 		mlearn_v(NextFrame_con_cvM, Frame_con_cvM,lastboxFound);	
+		
 	}
     
 }
