@@ -121,7 +121,7 @@ public:
 
 	void mDetelteGrid_ptr();
 
-	int mSumFrame_i;
+	
 private:
 
 	bool mIsLastValid_b;//用来判断是否训练
@@ -138,6 +138,7 @@ private:
 	int mMaxGoodbbNum_i;//最大goodbox个数 10
 	int mGridSize_i;
 	
+	
 
 	float mthrIsNExpert_f;//得到训练样本时用于判断是否为N专家
 	float mthrGoodOverlap_f;//判断为goodbox的overlap阈值
@@ -152,6 +153,7 @@ private:
 	float mAngleUpdate_f;//更新时仿射变换噪声参数  这里没用这个，暂时保留
 	float mFernPosterior_f;//这里要是fern中10个编码对应的概率总和，程序里所有Posterior都是指总和
 	float mMeanSimilar2kcf;
+	
 
 	double mBestbbVariance_d;//最好的box的图像的方差，用于方差分类器
 

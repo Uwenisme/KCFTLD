@@ -187,7 +187,7 @@ int main()
 	cvtColor(CurrImg_cvM, CurrGrayImg_cvM, CV_RGB2GRAY);
 	tld.init_v(CurrGrayImg_cvM, box, CurrImg_cvM);
 
-	tld.mSumFrame_i= 1;
+	int mSumFrame_i= 1;
 	int SumFound_i=0;
 	char str[15];
 	clock_t start, stop;
@@ -212,9 +212,9 @@ int main()
 			//ff << "NaN" << ' ' << "NaN" << ' ' << "NaN" << ' ' << "NaN" << endl;
 		}
 		
-		tld.mSumFrame_i++;
+		mSumFrame_i++;
 
-		sprintf(str, "%d/%d ", SumFound_i, tld.mSumFrame_i);
+		sprintf(str, "%d/%d ", SumFound_i, mSumFrame_i);
 		putText(NextImg_cvM, str, cvPoint(0, 20), 2, 1, CV_RGB(25, 200, 25));
 
 		imshow("OpenTLD", NextImg_cvM);
