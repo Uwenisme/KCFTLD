@@ -21,25 +21,12 @@
 #include "Fernclassifier_V1.0.h"
 #include "kcftracker.hpp"
 #include "NNclassifier_V1.0.h"
+#include "ifOccusion.h"
 
 #include "time.h"
 
 
-class BoundingBox : public cv::Rect
-{
-public:
-	BoundingBox()
-	{};
 
-	BoundingBox(cv::Rect r) : cv::Rect(r)
-	{};
-
-	~BoundingBox()
-	{};
-
-	float overlap;          //Overlap with current Bounding Box
-	int   sidx;             //scale index 
-};
 
 /*用来存放检测时Fern和相似度等等变量*/
 struct DetectVar
@@ -91,7 +78,7 @@ public:
 
 	void mEvaluate();
 
-	//void mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM);
+	bool mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM);
 
 	void mdetect_v(const Mat& NextFrame_con_cvM);
 
@@ -184,7 +171,7 @@ private:
 
 	PatchGenerator generator;//用于仿射变换
 
-//	LKtracker tracker;//跟踪的类
+	LKtracker tracker;//跟踪的类
 	Fernclassifie mFernModel_cls;//fern分类器的类
 	NNclassifier mNNModel_cls;//NN分类器的类
 
@@ -192,7 +179,7 @@ private:
 	GridFernPosterior FernPosterior_st;//用来存放检测时通过方差分类器后的box的fern和fern posterior
 	//用于后面学习时选取训练样本，避免重复工作
 
-	KCFTracker tracker;
+	KCFTracker kcf;
 	
 
 };

@@ -276,9 +276,9 @@ cv::Rect KCFTracker::update(cv::Mat image)
 	if ( _roi.y + _roi.height>=image.rows ) _roi.height=image.rows - _roi.y;
 	
 	
-    assert(_roi.width >= 0 && _roi.height >= 0);
-    cv::Mat x = getFeatures(image, 0);
-    train(x, interp_factor);
+   // assert(_roi.width >= 0 && _roi.height >= 0);
+  //  cv::Mat x = getFeatures(image, 0);
+   // train(x, interp_factor);
 
     return _roi;
 }

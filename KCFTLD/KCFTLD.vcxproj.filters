@@ -45,6 +45,9 @@
     <ClInclude Include="tracker.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ifOccusion.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fernclassifier_V1.0.cpp">
@@ -63,6 +66,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TLD_V1.0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ifOcclusion.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

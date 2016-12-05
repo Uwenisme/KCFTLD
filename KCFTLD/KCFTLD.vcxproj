@@ -82,6 +82,7 @@
     <ClInclude Include="Fernclassifier_V1.0.h" />
     <ClInclude Include="ffttools.hpp" />
     <ClInclude Include="fhog.hpp" />
+    <ClInclude Include="ifOccusion.h" />
     <ClInclude Include="kcftracker.hpp" />
     <ClInclude Include="labdata.hpp" />
     <ClInclude Include="NNclassifier_V1.0.h" />
@@ -92,6 +93,7 @@
   <ItemGroup>
     <ClCompile Include="Fernclassifier_V1.0.cpp" />
     <ClCompile Include="fhog.cpp" />
+    <ClCompile Include="ifOcclusion.cpp" />
     <ClCompile Include="kcftracker.cpp" />
     <ClCompile Include="NNclassifier_V1.0.cpp" />
     <ClCompile Include="run_tld_V1.0.cpp" />
