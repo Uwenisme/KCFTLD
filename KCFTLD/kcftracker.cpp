@@ -183,7 +183,7 @@ void KCFTracker::init(const cv::Rect &roi, cv::Mat image)
 	kf.statePost = *(cv::Mat_<float>(2, 1) << 1.05,0.f);*/
  }
 // Update position based on the new frame
-cv::Rect KCFTracker::update(cv::Mat image)
+cv::Rect KCFTracker::update(cv::Mat image,bool& iftrack)
 {
 	
 
@@ -261,6 +261,19 @@ cv::Rect KCFTracker::update(cv::Mat image)
 	/*cv::Mat measure(1, 1, CV_32F);
 	measure.at<float>(0) = scale_step;
 	kf.correct(measure);*/
+	printf("!!%f!!!\n", peak_value);
+	if (peak_value > 0.3)
+	{
+		 cv::Mat x = getFeatures(image, 0);
+		train(x, interp_factor);
+		iftrack = true;
+	}
+		
+	else
+	{
+		iftrack = false;
+	}
+		
 
     // Adjust by cell size and _scale
     _roi.x = cx - _roi.width / 2.0f + ((float) res.x * cell_size * _scale);
@@ -276,9 +289,11 @@ cv::Rect KCFTracker::update(cv::Mat image)
 	if ( _roi.y + _roi.height>=image.rows ) _roi.height=image.rows - _roi.y;
 	
 	
-   // assert(_roi.width >= 0 && _roi.height >= 0);
-  //  cv::Mat x = getFeatures(image, 0);
-   // train(x, interp_factor);
+    //assert(_roi.width >= 0 && _roi.height >= 0);
+    cv::Mat x = getFeatures(image, 0);
+    train(x, interp_factor);
+
+
 
     return _roi;
 }
@@ -311,6 +326,8 @@ cv::Point2f KCFTracker::detect(cv::Mat z, cv::Mat x, float &peak_value)
 
     p.x -= (res.cols) / 2;
     p.y -= (res.rows) / 2;
+
+	
 
     return p;
 }

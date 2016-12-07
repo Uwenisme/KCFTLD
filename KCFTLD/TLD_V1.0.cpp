@@ -81,9 +81,8 @@ void TLD::init_v(const Mat& FirstFrame_cvM, const Rect& box, const Mat Frame_cvM
 	FernPosterior_st.Fern = vector<vector<int> >(mGridSize_i, vector<int>(10, 0));
 
 	kcf.init(box, Frame_cvM);
-
-	mMeanSimilar2kcf = 0.5;
-	
+	mCountFrame_i = 0;
+	//mMeanSimilar2kcf = 0.5;
 }
 
 void TLD::mCalIntegralImgVariance_v(const Mat& FirstFrame_cvM)
@@ -482,78 +481,82 @@ void TLD::mEvaluate()
 
 void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM, BoundingBox& Nextbb, bool& lastboxFound, const Mat Frame_con_cvM)
 {
-	
+	mCountFrame_i++;
 	if (lastboxFound)
 	{
-		//if (!mtrack_v(CurrFrame_con_cvM, NextFrame_con_cvM))
-		//{
-		//	mIsTracked_b = false;
-		//}
-		mTrackbb = kcf.update(Frame_con_cvM);
+		bool isupdate;
+		mTrackbb = kcf.update(Frame_con_cvM, isupdate);
 		imshow("k", Frame_con_cvM(mTrackbb));
 		waitKey(1);
+		Mat nccResult_cvM(1, 1, CV_32F);
+		Mat pattern;
+		//float similarity = 0.f;
+		//float themax = 0.f;
+		//float average = 0.f;
+		
+
+		bool dummy1, dummy2;
+		float dummy3;
+		mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
+		mNNModel_cls.GetNNConf(pattern, dummy1, dummy2, dummy3, mTrackedCconf);//mTrackedCconf用于判断是否使用检测到的box
+
+		if (mCountFrame_i == 1)
+		   mFirstSimilar_f = mTrackedCconf;
+
+		//double distance = sqrt(pow(mLastbb.x - mTrackbb.x, 2) + pow(mLastbb.y - mTrackbb.y, 2));
+		
+		if (mTrackedCconf > 0.4)
+		{
+			mIsLastValid_b = true;
+		}
+		//if (mTrackedCconf >(1 / (1.2 + exp(-0.1*distance))*mFirstSimilar_f) || mTrackedCconf>0.3)
+		if (mTrackedCconf>0.60*mFirstSimilar_f && mTrackedCconf>0.25)
+			mIsTracked_b = true;
+		else
+			mIsTracked_b = false;
+
+
+
+		//for (; count < mNNModel_cls.mPExpert_vt_cvM.size(); count++)
+		//{
+		//	//计算送入图像片与所有p专家最大的相似值
+		//	//mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
+		//	matchTemplate(mNNModel_cls.mPExpert_vt_cvM[count], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
+		//	similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
+		//	average += similarity;
+		//	if (similarity>themax)
+		//	{
+		//		themax = similarity;
+		//	}
+		//}
+
+
+		//if (mTrackedCconf > 0.4)
+		//{
+		//	mIsLastValid_b = true;
+		//	mIsTracked_b = true;
+		//	printf("!!!!!!!!!is%f\n", mTrackedCconf);
+		//}
 		//else
 		//{
+		//	if (mTrackedCconf < mMeanSimilar2kcf*0.65&&mTrackedCconf <0.3)
+		//	{
+		//		mIsTracked_b = false;
+		//		printf("the mTrackedCconf is%f\n", mTrackedCconf);
+		//		//system("pause");
+		//	}
+		//	else
+		//	{
+		//		mIsTracked_b = true;
 
-			
-			Mat nccResult_cvM(1, 1, CV_32F);
-			Mat pattern;
-			//float similarity = 0.f;
-			//float themax = 0.f;
-			//float average = 0.f;
-			int count = 0;
-
-			bool dummy1, dummy2;
-			float dummy3;
-			mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
-			mNNModel_cls.GetNNConf(pattern, dummy1, dummy2, dummy3, mTrackedCconf);//mTrackedCconf用于判断是否使用检测到的box
-
-			//for (; count < mNNModel_cls.mPExpert_vt_cvM.size(); count++)
-			//{
-			//	//计算送入图像片与所有p专家最大的相似值
-			//	//mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
-			//	matchTemplate(mNNModel_cls.mPExpert_vt_cvM[count], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
-			//	similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
-			//	average += similarity;
-			//	if (similarity>themax)
-			//	{
-			//		themax = similarity;
-			//	}
-			//}
-			////ff << average/count << ' ';
-			//average /= count;
-			ff << mTrackedCconf << ' ';
-
-			if (mTrackedCconf > 0.35)
-			{
-				mIsLastValid_b = true;
-				mIsTracked_b = true;
-				//printf("!!!!!!!!!is%f\n", mTrackedCconf);
-			}
-			else
-			{
-				if (mTrackedCconf < mMeanSimilar2kcf*0.65&&mTrackedCconf <0.3)
-				{
-					mIsTracked_b = false;
-					printf("the mTrackedCconf is%f\n", mTrackedCconf);
-					//system("pause");
-				}
-				else
-				{
-					mIsTracked_b = true;
-
-				}
-			}
-
-			mMeanSimilar2kcf = mMeanSimilar2kcf*0.8 + mTrackedCconf*0.2;
-
+		//	}
 		//}
-		
-		
+		//mMeanSimilar2kcf = mMeanSimilar2kcf*0.8 + mTrackedCconf*0.2;
+		//mtrack_v(CurrFrame_con_cvM, NextFrame_con_cvM);
 	}
 	else
 	{
-		//ff << mTrackedCconf << ' ';
+	//	ff << mTrackedCconf << ' ';
 		mIsTracked_b = false;
 	}
 
@@ -583,19 +586,24 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			{
 				//当检测到的聚类后box的overlap与跟踪到box小于0.5并且与NN模型的对比的保守相似度是聚类后的box大
 				//认为该聚类后的box是有效的
-				if (mGetbbOverlap(mTrackbb, mClusterbb[i])<0.5&&0.9*mClusterCconf[i]>mTrackedCconf)
+				if (mGetbbOverlap(mTrackbb, mClusterbb[i])<0.5&&mClusterCconf[i]>mTrackedCconf)
 				{
 					confidentDetNum++;
 					ConfDetidx = i;
-					printf("%f %f\n", mClusterCconf[i], mTrackedCconf);
 				}
 			}
-
+			
 			if (1 == confidentDetNum)
 			{
-				printf("Found a better match..reinitializing tracking\n");
-				Nextbb = mClusterbb[ConfDetidx];
-				kcf._roi = Nextbb;
+				//double distance = sqrt(pow(mClusterbb[ConfDetidx].x - mTrackbb.x, 2) + pow(mClusterbb[ConfDetidx].y - mTrackbb.y, 2));
+				//double distance = sqrt(pow(mLastbb.x - mTrackbb.x, 2) + pow(mLastbb.y - mTrackbb.y, 2));
+				//if (distance>80)
+				//{
+					printf("Found a better match..reinitializing tracking\n");
+					Nextbb = mClusterbb[ConfDetidx];
+					kcf._roi = Nextbb;
+				//}
+				
 				//lastboxFound = true;
 				//mIsLastValid_b = false;
 			}
@@ -623,7 +631,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			//		Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
 			//		Nextbb.width = round((float)(mTrackbb.width * 10 + cw) / (float)(10 + closeNum));
 			//		Nextbb.height = round((float)(mTrackbb.height * 10 + ch) / (float)(10 + closeNum));
-			//
+
 			//		printf("Track BB:x%d y%d w%d h%d\n", mTrackbb.x, mTrackbb.y, mTrackbb.width, mTrackbb.height);
 			//		printf("Average BB:x%d y%d w%d h%d\n", Nextbb.x, Nextbb.y, Nextbb.width, Nextbb.height);
 			//	}
@@ -637,30 +645,30 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		}//end of if (mIsDetected_b)
 		//else
 		//{
-			//Mat nccResult_cvM(1, 1, CV_32F);
-			//Mat pattern;
-			//float similarity = 0.f;
-			//float themax = 0.f;
-			//for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
-			//{
-			//	//计算送入图像片与所有p专家最大的相似值
-			//	mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
-			//	matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
-			//	similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
-			//	if (similarity>themax)
-			//	{
-			//		themax = similarity;
+		//Mat nccResult_cvM(1, 1, CV_32F);
+		//Mat pattern;
+		//float similarity = 0.f;
+		//float themax = 0.f;
+		//for (int i = 0; i < mNNModel_cls.mPExpert_vt_cvM.size(); i++)
+		//{
+		//	//计算送入图像片与所有p专家最大的相似值
+		//	mGetPattern_v(NextFrame_con_cvM(mTrackbb), pattern, Scalar(1, 1, 1));
+		//	matchTemplate(mNNModel_cls.mPExpert_vt_cvM[i], pattern, nccResult_cvM, CV_TM_CCORR_NORMED);
+		//	similarity = (((float*)nccResult_cvM.data)[0] + 1)*0.5;
+		//	if (similarity>themax)
+		//	{
+		//		themax = similarity;
 
-			//	}
-			//}
-			//if (themax < 0.6)
-			//{
-			//	mIsTracked_b = false;
-			//}
-			
-			//ff << themax << ' ';
-			
-	//	}
+		//	}
+		//}
+		//if (themax < 0.6)
+		//{
+		//	mIsTracked_b = false;
+		//}
+
+		//ff << themax << ' ';
+
+		//	}
 
 	}//end of if (mIsTracked_b)
 
@@ -690,23 +698,22 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				printf("%f %f\n", rconf, cconf);
 				if (cconf > 0.45)
 				{*/
-					Nextbb = mClusterbb[0];
-					printf("Confident detection..reinitializing tracker\n");
-					lastboxFound = true;
-					//tracker._roi = Nextbb;
-					//mIsLastValid_b = true;
-				//}
-				
+				Nextbb = mClusterbb[0];
+				printf("Confident detection..reinitializing tracker\n");
+				lastboxFound = true;
+				//tracker._roi = Nextbb;
 				//mIsLastValid_b = true;
+				//}
+
 			}
 		}
 
 	}
-	
-	
+
+
 	mLastbb = Nextbb;
-	
-	
+
+
 	/*Mat pre = kf.predict();
 	tracker._roi = Rect(pre.at<float>(0), pre.at<float>(1), pre.at<float>(2), pre.at<float>(3));
 	Mat measure(4, 1, CV_32F);
@@ -718,22 +725,14 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 	if (mIsLastValid_b)
 	{
-		mlearn_v(NextFrame_con_cvM, Frame_con_cvM,lastboxFound);	
-		
+		mlearn_v(NextFrame_con_cvM, Frame_con_cvM, lastboxFound);
 	}
-    
+
 }
 
 
-//void TLD::mtrack_v(const Mat& NextFrame_con_cvM)
-//{
-//	
-//}
-
-bool TLD::mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM)
+void TLD::mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM)
 {
-	printf("[track]\n");
-
 	CurrPoints_vt_cvP32.clear();
 	NextPoints_vt_cvP32.clear();
 
@@ -744,21 +743,55 @@ bool TLD::mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM)
 		printf("BB= %d %d %d %d, Points not generated\n", mLastbb.x, mLastbb.y, mLastbb.width, mLastbb.height);
 		mIsTracked_b = false;
 		mIsTrackValid_b = false;
-		return false;
+		return;
 	}
 
-	return tracker.getPredictPt(CurrFrame_con_cvM, NextFrame_con_cvM, CurrPoints_vt_cvP32, NextPoints_vt_cvP32);
 	//预测下一帧点/
-	//if (!tracker.getPredictPt(CurrFrame_con_cvM, NextFrame_con_cvM, CurrPoints_vt_cvP32, NextPoints_vt_cvP32))
-	//	return false;
-	//printf("%f\n", tracker.mGetBackwardErrMedian());
-	//if (tracker.mGetBackwardErrMedian()>10)
-	//{
-	//	return false;
-	//}
+	mIsTracked_b = tracker.getPredictPt(CurrFrame_con_cvM, NextFrame_con_cvM, CurrPoints_vt_cvP32, NextPoints_vt_cvP32);
 
-	//return true;
+	if (mIsTracked_b)
+	{
+		//用预测到的点来预测下一帧目标
+		tracker.PredictObj_v(CurrPoints_vt_cvP32, NextPoints_vt_cvP32, mLastbb, mTrackbb);
+		//printf("1\n");
+		//当预测错误太大或预测box超出图像
+		if (tracker.mGetBackwardErrMedian()>10 || mTrackbb.x>NextFrame_con_cvM.cols || mTrackbb.y>NextFrame_con_cvM.rows || mTrackbb.width < 1 || mTrackbb.height <1)
+		{
+			mIsTracked_b = false;
+			mIsTrackValid_b = false;
+			printf("Too unstable predictions FB error=%f\n", tracker.mGetBackwardErrMedian());
+			return;
+		}
+
+		//保证预测box所有部分都在图像里
+		BoundingBox bb;
+		bb.x = max(mTrackbb.x, 0);
+		bb.y = max(mTrackbb.y, 0);
+		bb.width = min(min(NextFrame_con_cvM.cols - mTrackbb.x, mTrackbb.width), min(mTrackbb.width, mTrackbb.br().x));
+		bb.height = min(min(NextFrame_con_cvM.rows - mTrackbb.y, mTrackbb.height), min(mTrackbb.height, mTrackbb.br().y));
+
+
+		Scalar stdDev;
+		Mat pattern;
+		bool dummy1, dummy2;
+		float dummy3;
+
+		mGetPattern_v(NextFrame_con_cvM(bb), pattern, stdDev);
+		mNNModel_cls.GetNNConf(pattern, dummy1, dummy2, dummy3, mTrackedCconf);//mTrackedCconf用于判断是否使用检测到的box
+
+		mIsTrackValid_b = mIsLastValid_b;
+		//	if (mTrackedCconf>mthrTrackValid)//0.7
+		if (mTrackedCconf>0.6)//0.65
+		{
+			mIsTrackValid_b = true;
+		}
+
+	}
+
+	
 }
+
+
 
 void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 {
@@ -794,7 +827,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 			FernPosterior_st.Posterior[i] = FernPosterior;
 			FernPosterior_st.Fern[i] = fern_vt;
 
-			if (FernPosterior>mFernPosterior_f-0.2)//mFernPosterior_f = 6.
+			if (FernPosterior>mFernPosterior_f - 0.1)//mFernPosterior_f = 6.
 			{
 				mDetectvar_st.bbidx_i_vt.push_back(i);
 			}
@@ -835,7 +868,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 		mNNModel_cls.GetNNConf(mDetectvar_st.pattern_vt_cvM[i], dummy, dummy1, rconf_f_vt[i], cconf_f_vt[i]);
 
 		//if (mDetectvar_st.rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx)//0.65
-		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx-0.02)
+		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx - 0.02)
 		{
 			mDetectedbb.push_back(mGrid_ptr[idx]);//最终通过的box
 			mDetectCconf.push_back(cconf_f_vt[i]);//通过box的保守相似度
@@ -854,7 +887,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 	}
 }
 
-void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& lastboxFound)
+void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool& lastboxFound)
 {
 	printf("[learn]\n");
 	//保证不会超出图像
@@ -868,7 +901,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& 
 	Scalar stdDev;
 	mGetPattern_v(NextFrame_con_cvM(Nextbb), pattern, stdDev);
 
-	if (pow(stdDev.val[0], 2) < mBestbbVariance_d/3)//方差太小，不训练
+	if (pow(stdDev.val[0], 2) < mBestbbVariance_d/4)//方差太小，不训练
 	{
 		printf("Low variance!Not train!%lf\n", mBestbbVariance_d);
 		mIsLastValid_b = false;
@@ -890,7 +923,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& 
 		return;
 	}
 
-	if (rconf < 0.3)//与正样本相似度太低，不训练
+	if (rconf < 0.35)//与正样本相似度太低，不训练
 	{
 		printf("Fast change!Not train\n");
 		mIsLastValid_b = false;
@@ -946,7 +979,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM,bool& 
 
 	//assert(_roi.width >= 0 && _roi.height >= 0);
 	cv::Mat x = kcf.getFeatures(Frame_con_cvM, 0);
-	kcf.train(x, kcf.interp_factor);
+	kcf.train(x,kcf.interp_factor);
 
 	printf("%d current fern model to train\n", mCurrFern_vt.size());
 	printf("%d current NExpert model to train\n", mNExpert_vt_cvM.size());

@@ -78,7 +78,7 @@ public:
 
 	void mEvaluate();
 
-	bool mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM);
+	void mtrack_v(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cvM);
 
 	void mdetect_v(const Mat& NextFrame_con_cvM);
 
@@ -124,7 +124,7 @@ private:
 	int mPatternSize_i;//图像归一化size 15*15
 	int mMaxGoodbbNum_i;//最大goodbox个数 10
 	int mGridSize_i;
-	
+	int mCountFrame_i;
 	
 
 	float mthrIsNExpert_f;//得到训练样本时用于判断是否为N专家
@@ -139,7 +139,8 @@ private:
 	float mScsleUpdate_f;//更新时仿射变换噪声参数  这里没用这个，暂时保留
 	float mAngleUpdate_f;//更新时仿射变换噪声参数  这里没用这个，暂时保留
 	float mFernPosterior_f;//这里要是fern中10个编码对应的概率总和，程序里所有Posterior都是指总和
-	float mMeanSimilar2kcf;
+	//float mMeanSimilar2kcf;
+	float mFirstSimilar_f;
 	
 
 	double mBestbbVariance_d;//最好的box的图像的方差，用于方差分类器
