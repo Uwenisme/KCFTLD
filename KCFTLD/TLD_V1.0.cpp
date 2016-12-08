@@ -501,7 +501,14 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 		mNNModel_cls.GetNNConf(pattern, dummy1, dummy2, dummy3, mTrackedCconf);//mTrackedCconf用于判断是否使用检测到的box
 
 		if (mCountFrame_i == 1)
-		   mFirstSimilar_f = mTrackedCconf;
+		{
+			mFirstSimilar_f = mTrackedCconf;
+			if (mFirstSimilar_f > 0.55)
+				mRatio_f = 0.65;
+			else
+				mRatio_f = 0.55;
+		}
+		  
 
 		//double distance = sqrt(pow(mLastbb.x - mTrackbb.x, 2) + pow(mLastbb.y - mTrackbb.y, 2));
 		
@@ -510,7 +517,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			mIsLastValid_b = true;
 		}
 		//if (mTrackedCconf >(1 / (1.2 + exp(-0.1*distance))*mFirstSimilar_f) || mTrackedCconf>0.3)
-		if (mTrackedCconf>0.60*mFirstSimilar_f && mTrackedCconf>0.25)
+		if (mTrackedCconf>mRatio_f*mFirstSimilar_f && mTrackedCconf>0.25)
 			mIsTracked_b = true;
 		else
 			mIsTracked_b = false;
@@ -607,40 +614,40 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				//lastboxFound = true;
 				//mIsLastValid_b = false;
 			}
-			//else
-			//{
-			//	int cx = 0, cy = 0, cw = 0, ch = 0;
-			//	int closeNum = 0;
+			else
+			{
+				int cx = 0, cy = 0, cw = 0, ch = 0;
+				int closeNum = 0;
 
-			//	for (int i = 0; i <mDetectedbb.size(); i++)
-			//	{
-			//		if (mGetbbOverlap(mDetectedbb[i], mTrackbb)>0.7)
-			//		{
-			//			cx += mDetectedbb[i].x;
-			//			cy += mDetectedbb[i].y;
-			//			cw += mDetectedbb[i].width;
-			//			ch += mDetectedbb[i].height;
-			//			closeNum++;
-			//		}
-			//	}
+				for (int i = 0; i <mDetectedbb.size(); i++)
+				{
+					if (mGetbbOverlap(mDetectedbb[i], mTrackbb)>0.7)
+					{
+						cx += mDetectedbb[i].x;
+						cy += mDetectedbb[i].y;
+						cw += mDetectedbb[i].width;
+						ch += mDetectedbb[i].height;
+						closeNum++;
+					}
+				}
 
-			//	if (closeNum > 0)
-			//	{
-			//		//这里的10是用来平衡mTrackbb与detectbb权重，使其基本一致，detectbb一般为10左右
-			//		Nextbb.x = round((float)(mTrackbb.x * 10 + cx) / (float)(10 + closeNum));
-			//		Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
-			//		Nextbb.width = round((float)(mTrackbb.width * 10 + cw) / (float)(10 + closeNum));
-			//		Nextbb.height = round((float)(mTrackbb.height * 10 + ch) / (float)(10 + closeNum));
+				if (closeNum > 0)
+				{
+					//这里的10是用来平衡mTrackbb与detectbb权重，使其基本一致，detectbb一般为10左右
+					Nextbb.x = round((float)(mTrackbb.x * 12 + cx) / (float)(12 + closeNum));
+					Nextbb.y = round((float)(mTrackbb.y * 12 + cy) / (float)(12 + closeNum));
+					Nextbb.width = round((float)(mTrackbb.width * 12 + cw) / (float)(12 + closeNum));
+					Nextbb.height = round((float)(mTrackbb.height * 12 + ch) / (float)(12 + closeNum));
 
-			//		printf("Track BB:x%d y%d w%d h%d\n", mTrackbb.x, mTrackbb.y, mTrackbb.width, mTrackbb.height);
-			//		printf("Average BB:x%d y%d w%d h%d\n", Nextbb.x, Nextbb.y, Nextbb.width, Nextbb.height);
-			//	}
-			//	else
-			//	{
-			//		printf("No close detections were found\n");
+					printf("Track BB:x%d y%d w%d h%d\n", mTrackbb.x, mTrackbb.y, mTrackbb.width, mTrackbb.height);
+					printf("Average BB:x%d y%d w%d h%d\n", Nextbb.x, Nextbb.y, Nextbb.width, Nextbb.height);
+				}
+				else
+				{
+					printf("No close detections were found\n");
 
-			//	}
-			//}//end of else
+				}
+			}//end of else
 
 		}//end of if (mIsDetected_b)
 		//else
@@ -685,7 +692,7 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 			mCluster(mDetectedbb, mDetectCconf, mClusterbb, mClusterCconf);
 
-			if (mClusterbb.size() == 1)
+			if (mClusterbb.size() == 1 && mClusterCconf[0]>0.5)
 			{
 				/*mTrackbb = tracker.update(Frame_con_cvM);
 				bool dummy1;
@@ -923,7 +930,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 		return;
 	}
 
-	if (rconf < 0.35)//与正样本相似度太低，不训练
+	if (rconf < 0.3)//与正样本相似度太低，不训练
 	{
 		printf("Fast change!Not train\n");
 		mIsLastValid_b = false;

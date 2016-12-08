@@ -141,7 +141,7 @@ private:
 	float mFernPosterior_f;//这里要是fern中10个编码对应的概率总和，程序里所有Posterior都是指总和
 	//float mMeanSimilar2kcf;
 	float mFirstSimilar_f;
-	
+	float mRatio_f;
 
 	double mBestbbVariance_d;//最好的box的图像的方差，用于方差分类器
 
