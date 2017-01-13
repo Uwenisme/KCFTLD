@@ -502,11 +502,15 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 		if (mCountFrame_i == 1)
 		{
-			mFirstSimilar_f = mTrackedCconf;
-			if (mFirstSimilar_f > 0.55)
-				mRatio_f = 0.65;
+			if (mFirstSimilar_f > 0.60)
+			{
+				mRatio_f = 0.45;
+				if (mFirstSimilar_f > 0.70)
+					mRatio_f = 0.35;
+			}
+
 			else
-				mRatio_f = 0.55;
+				mRatio_f = 0.45;
 		}
 		  
 
@@ -517,12 +521,13 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			mIsLastValid_b = true;
 		}
 		//if (mTrackedCconf >(1 / (1.2 + exp(-0.1*distance))*mFirstSimilar_f) || mTrackedCconf>0.3)
-		if (mTrackedCconf>mRatio_f*mFirstSimilar_f && mTrackedCconf>0.25)
+		//if (mTrackedCconf>mRatio_f*mFirstSimilar_f && mTrackedCconf>0.25)
+		if (mTrackedCconf>0.20)
 			mIsTracked_b = true;
 		else
 			mIsTracked_b = false;
 
-
+		printf("mTrackedCconf%f\n", mTrackedCconf);
 
 		//for (; count < mNNModel_cls.mPExpert_vt_cvM.size(); count++)
 		//{
@@ -593,26 +598,21 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 			{
 				//当检测到的聚类后box的overlap与跟踪到box小于0.5并且与NN模型的对比的保守相似度是聚类后的box大
 				//认为该聚类后的box是有效的
-				if (mGetbbOverlap(mTrackbb, mClusterbb[i])<0.5&&mClusterCconf[i]>mTrackedCconf)
+				if (mGetbbOverlap(mTrackbb, mClusterbb[i])<0.6&&mClusterCconf[i]>1.0*mTrackedCconf)
 				{
 					confidentDetNum++;
 					ConfDetidx = i;
 				}
 			}
 			
-			if (1 == confidentDetNum)
+			if (1 == confidentDetNum&&mCountFrame_i!=1)
 			{
-				//double distance = sqrt(pow(mClusterbb[ConfDetidx].x - mTrackbb.x, 2) + pow(mClusterbb[ConfDetidx].y - mTrackbb.y, 2));
-				//double distance = sqrt(pow(mLastbb.x - mTrackbb.x, 2) + pow(mLastbb.y - mTrackbb.y, 2));
-				//if (distance>80)
-				//{
 					printf("Found a better match..reinitializing tracking\n");
 					Nextbb = mClusterbb[ConfDetidx];
 					kcf._roi = Nextbb;
-				//}
-				
-				//lastboxFound = true;
-				//mIsLastValid_b = false;
+					//cv::Mat x = kcf.getFeatures(Frame_con_cvM, 0);
+				//	kcf.train(x,kcf.interp_factor);
+
 			}
 			else
 			{
@@ -634,10 +634,10 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				if (closeNum > 0)
 				{
 					//这里的10是用来平衡mTrackbb与detectbb权重，使其基本一致，detectbb一般为10左右
-					Nextbb.x = round((float)(mTrackbb.x * 12 + cx) / (float)(12 + closeNum));
-					Nextbb.y = round((float)(mTrackbb.y * 12 + cy) / (float)(12 + closeNum));
-					Nextbb.width = round((float)(mTrackbb.width * 12 + cw) / (float)(12 + closeNum));
-					Nextbb.height = round((float)(mTrackbb.height * 12 + ch) / (float)(12 + closeNum));
+					Nextbb.x = round((float)(mTrackbb.x * 10 + cx) / (float)(10 + closeNum));
+					Nextbb.y = round((float)(mTrackbb.y * 10 + cy) / (float)(10 + closeNum));
+					Nextbb.width = round((float)(mTrackbb.width * 10 + cw) / (float)(10+ closeNum));
+					Nextbb.height = round((float)(mTrackbb.height * 10 + ch) / (float)(10 + closeNum));
 
 					printf("Track BB:x%d y%d w%d h%d\n", mTrackbb.x, mTrackbb.y, mTrackbb.width, mTrackbb.height);
 					printf("Average BB:x%d y%d w%d h%d\n", Nextbb.x, Nextbb.y, Nextbb.width, Nextbb.height);
@@ -692,7 +692,8 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 
 			mCluster(mDetectedbb, mDetectCconf, mClusterbb, mClusterCconf);
 
-			if (mClusterbb.size() == 1 && mClusterCconf[0]>0.5)
+			//if (mClusterbb.size() == 1 && mClusterCconf[0]>0.5)
+			if (mClusterbb.size() == 1)
 			{
 				/*mTrackbb = tracker.update(Frame_con_cvM);
 				bool dummy1;
@@ -708,6 +709,9 @@ void TLD::processFrame(const Mat& CurrFrame_con_cvM, const Mat& NextFrame_con_cv
 				Nextbb = mClusterbb[0];
 				printf("Confident detection..reinitializing tracker\n");
 				lastboxFound = true;
+				kcf._roi = Nextbb;
+				cv::Mat x = kcf.getFeatures(Frame_con_cvM, 0);
+				kcf.train(x, kcf.interp_factor);
 				//tracker._roi = Nextbb;
 				//mIsLastValid_b = true;
 				//}
@@ -819,7 +823,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 
 	Mat img;
 	img.create(NextFrame_con_cvM.rows, NextFrame_con_cvM.cols, CV_8U);
-	GaussianBlur(NextFrame_con_cvM, img, Size(9, 9), 1.5);//用高斯模糊降噪，因为训练时采用这得到图像获取fern，这里也应对应
+	GaussianBlur(NextFrame_con_cvM, img, Size(9, 9), 0.5);//用高斯模糊降噪，因为训练时采用这得到图像获取fern，这里也应对应
 
 
 	for (int i = 0; i < mGridSize_i; i++)
@@ -875,7 +879,7 @@ void TLD::mdetect_v(const Mat& NextFrame_con_cvM)
 		mNNModel_cls.GetNNConf(mDetectvar_st.pattern_vt_cvM[i], dummy, dummy1, rconf_f_vt[i], cconf_f_vt[i]);
 
 		//if (mDetectvar_st.rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx)//0.65
-		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx - 0.02)
+		if (rconf_f_vt[i]>mNNModel_cls.mthrUpdatePEx - 0.01)
 		{
 			mDetectedbb.push_back(mGrid_ptr[idx]);//最终通过的box
 			mDetectCconf.push_back(cconf_f_vt[i]);//通过box的保守相似度
@@ -912,7 +916,8 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 	{
 		printf("Low variance!Not train!%lf\n", mBestbbVariance_d);
 		mIsLastValid_b = false;
-		lastboxFound = false;
+		//if (pow(stdDev.val[0], 2) < mBestbbVariance_d / 5)
+		//lastboxFound = false;
 		return;
 	}
 
@@ -930,7 +935,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 		return;
 	}
 
-	if (rconf < 0.3)//与正样本相似度太低，不训练
+	if (rconf < 0.25)//与正样本相似度太低，不训练
 	{
 		printf("Fast change!Not train\n");
 		mIsLastValid_b = false;
@@ -963,7 +968,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 	for (int i = 0; i<mBadbb_i_vt.size(); i++)
 	{
 		idx = mBadbb_i_vt[i];
-		if (FernPosterior_st.Posterior[idx] >= 1){ //当该box的fern概率大于1，得到badbox的fern用于训练
+		if (FernPosterior_st.Posterior[idx] >= 0.90){ //当该box的fern概率大于1，得到badbox的fern用于训练
 			mCurrFern_vt.push_back(make_pair(FernPosterior_st.Fern[idx], false));
 		}
 	}
@@ -974,7 +979,7 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 
 	for (int i = 0; i<DetbbSize; i++){
 		idx = mDetectvar_st.bbidx_i_vt[i];//能通过方差和fern分类器的box
-		if (mGetbbOverlap(mLastbb, mGrid_ptr[idx]) < mthrIsNExpert_f)
+		if (mGetbbOverlap(mLastbb, mGrid_ptr[idx]) < mthrIsNExpert_f-0.04)
 			mNExpert_vt_cvM.push_back(mDetectvar_st.pattern_vt_cvM[i]);//得到可能是N专家的归一化图像训练
 	}
 
@@ -985,8 +990,8 @@ void TLD::mlearn_v(const Mat& NextFrame_con_cvM, const Mat& Frame_con_cvM, bool&
 	mNNModel_cls.UpdateNNmodel(mPExpert_cvM, mNExpert_vt_cvM);
 
 	//assert(_roi.width >= 0 && _roi.height >= 0);
-	cv::Mat x = kcf.getFeatures(Frame_con_cvM, 0);
-	kcf.train(x,kcf.interp_factor);
+	//cv::Mat x = kcf.getFeatures(Frame_con_cvM, 0);
+	//kcf.train(x,kcf.interp_factor);
 
 	printf("%d current fern model to train\n", mCurrFern_vt.size());
 	printf("%d current NExpert model to train\n", mNExpert_vt_cvM.size());

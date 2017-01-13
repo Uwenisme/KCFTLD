@@ -12,7 +12,7 @@ NNclassifier::~NNclassifier()
 
 void NNclassifier::read(const FileNode& file)
 {
-	mnccthrSame_f = (float)file["ncc_thesame"];
+	mnccthrSame_f = (float)file["ncc_thesame"]+0.05;
 	mthrUpdatePEx = (float)file["thr_nn"];
 }
 
@@ -74,7 +74,11 @@ void NNclassifier::GetNNConf(const Mat& example, bool& isSimilar2PEx, bool& isSi
 	}
 
 	if (maxN_f > mnccthrSame_f)
+	{	
+		//printf("%f %f\n", maxN_f, mnccthrSame_f);
 		isSimilar2NEx = true;
+	}
+		
 
 	float dP = 1 - maxP_f;
 	float cdP = 1 - cmaxP_f;
@@ -95,7 +99,7 @@ void NNclassifier::UpdateNNmodel(const Mat& pPatch_con_cvM, const vector<Mat>& n
 
 	GetNNConf(pPatch_con_cvM, isSimilar_b, dummy, rconf_f, cconf_f);
 	//当检测到认为可能是P专家与模型相似度过小时，若与P专家相似，则保存，否则用此重新初始化PExpert
-	if (rconf_f <= mthrUpdatePEx)//mthrUpdatePEx=0.65
+	if (rconf_f <= mthrUpdatePEx+0.05)//mthrUpdatePEx=0.65
 	{
 		if (isSimilar_b)
 		{
@@ -111,7 +115,7 @@ void NNclassifier::UpdateNNmodel(const Mat& pPatch_con_cvM, const vector<Mat>& n
 	{
 		GetNNConf(nPatch_con_cvM[i], isSimilar_b, dummy, rconf_f, cconf_f);
 		//当检测到认为可能是N专家与模型相似度较大时，则保存
-		if (rconf_f>0.5)
+		if (rconf_f>0.52)
 		{
 			mNExpert_vt_cvM.push_back(nPatch_con_cvM[i]);
 		}

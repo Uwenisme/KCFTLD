@@ -83,7 +83,7 @@ void Fernclassifie::UpdateFernModel(const vector <pair<vector<int>, bool>>& fern
 	{
 		if (fern[i].second)//如果是好的box的fern
 		{
-			if (GetFernPosterior(fern[i].first) <= mthrP)//mthrP = 6
+			if (GetFernPosterior(fern[i].first) <= mthrP-0.038)//mthrP = 6
 			{
 				vector<int> fern_vt = fern[i].first;
 				for (int j = 0; j < mNFern_i; j++)
